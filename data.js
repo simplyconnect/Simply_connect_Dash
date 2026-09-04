@@ -17,7 +17,7 @@
  * Filters: &start=YYYY-MM-DD&end=YYYY-MM-DD&team=X&campaign=Y&state=Z&agent=A
  */
 
-window.API_URL = '';   // ← paste your GAS deployment URL here
+window.API_URL = 'https://script.google.com/macros/s/AKfycbwOJTmUyK2dgOJglsAGQ_IIKS2s6Twc-2L6w9wqITDOORuTP-qrC97yxDOGFxnQUXle/exec';   // ← paste your GAS deployment URL here
 
 /* ═══════════════════════════════════════════════════════
    STATIC DATA  (snapshot — see header above)
