@@ -1,0 +1,201 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8"/>
+<meta name="viewport" content="width=device-width,initial-scale=1.0"/>
+<title>Simply Connect · Analytics Dashboard</title>
+<link rel="icon" type="image/png" href="assets/logo-icon.png"/>
+<meta name="theme-color" content="#0B0B0B"/>
+<link rel="preconnect" href="https://fonts.googleapis.com"/>
+<link href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800;900&display=swap" rel="stylesheet"/>
+<script src="https://cdn.jsdelivr.net/npm/chart.js@4.4.0/dist/chart.umd.min.js"></script>
+<script src="https://cdn.jsdelivr.net/npm/chartjs-plugin-datalabels@2.2.0/dist/chartjs-plugin-datalabels.min.js"></script>
+<link rel="stylesheet" href="css/style.css"/>
+</head>
+<body>
+
+<div class="layout" id="layout">
+
+  <!-- ══ SIDEBAR ══ -->
+  <aside class="sidebar" id="sidebar">
+    <div class="sb-logo">
+      <div class="sb-logo-icon"><img src="assets/logo-icon.png" alt="Simply Connect"/></div>
+      <div class="sb-logo-text">
+        <span class="sb-brand">Simply Connect</span>
+        <span class="sb-sub">Call Center Analytics</span>
+      </div>
+    </div>
+
+    <div class="sb-section-label">MAIN</div>
+    <nav class="sb-nav">
+      <a class="nav-link active" data-tab="overview" href="#">
+        <svg viewBox="0 0 24 24"><rect x="3" y="3" width="7" height="7" rx="1.5"/><rect x="14" y="3" width="7" height="7" rx="1.5"/><rect x="3" y="14" width="7" height="7" rx="1.5"/><rect x="14" y="14" width="7" height="7" rx="1.5"/></svg>
+        <span>Overview</span>
+      </a>
+      <a class="nav-link" data-tab="calls" href="#">
+        <svg viewBox="0 0 24 24"><path d="M22 16.92v3a2 2 0 0 1-2.18 2A19.79 19.79 0 0 1 11.62 19a19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.92-8.2A2 2 0 0 1 3.68 2H6.7a2 2 0 0 1 2 1.72c.127.96.361 1.903.7 2.81a2 2 0 0 1-.45 2.11L7.91 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45c.907.339 1.85.573 2.81.7A2 2 0 0 1 22 16.92z"/></svg>
+        <span>Call Analytics</span>
+        <span class="nav-badge" id="badgeCalls">0</span>
+      </a>
+      <a class="nav-link" data-tab="sales" href="#">
+        <svg viewBox="0 0 24 24"><polyline points="22 7 13.5 15.5 8.5 10.5 2 17"/><polyline points="16 7 22 7 22 13"/></svg>
+        <span>Sales Analytics</span>
+        <span class="nav-badge gold" id="badgeSales">0</span>
+      </a>
+      <a class="nav-link" data-tab="agents" href="#">
+        <svg viewBox="0 0 24 24"><path d="M17 21v-2a4 4 0 0 0-4-4H5a4 4 0 0 0-4 4v2"/><circle cx="9" cy="7" r="4"/><path d="M23 21v-2a4 4 0 0 0-3-3.87"/><path d="M16 3.13a4 4 0 0 1 0 7.75"/></svg>
+        <span>Agent Performance</span>
+      </a>
+      <a class="nav-link" data-tab="campaigns" href="#">
+        <svg viewBox="0 0 24 24"><path d="M3 3h18v4H3zM3 10h18v4H3zM3 17h18v4H3z"/></svg>
+        <span>Campaigns</span>
+      </a>
+    </nav>
+
+    <div class="sb-section-label">ANALYTICS</div>
+    <nav class="sb-nav">
+      <a class="nav-link" data-tab="states" href="#">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="2" y1="12" x2="22" y2="12"/><path d="M12 2a15.3 15.3 0 0 1 4 10 15.3 15.3 0 0 1-4 10 15.3 15.3 0 0 1-4-10 15.3 15.3 0 0 1 4-10z"/></svg>
+        <span>State Analytics</span>
+      </a>
+      <a class="nav-link" data-tab="hourly" href="#">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><polyline points="12 6 12 12 16 14"/></svg>
+        <span>Hourly Heatmap</span>
+      </a>
+      <a class="nav-link" data-tab="insights" href="#">
+        <svg viewBox="0 0 24 24"><circle cx="12" cy="12" r="10"/><line x1="12" y1="8" x2="12" y2="12"/><line x1="12" y1="16" x2="12.01" y2="16"/></svg>
+        <span>Insights</span>
+      </a>
+      <a class="nav-link" data-tab="apisetup" href="#">
+        <svg viewBox="0 0 24 24"><polyline points="16 18 22 12 16 6"/><polyline points="8 6 2 12 8 18"/></svg>
+        <span>API Setup</span>
+      </a>
+    </nav>
+
+    <div class="sb-footer">
+      <div class="sb-status" id="sbStatus">
+        <span class="pulse-dot"></span>
+        <span id="sbStatusText">Static</span>
+      </div>
+    </div>
+  </aside>
+
+  <!-- ══ MAIN ══ -->
+  <div class="main-wrap">
+
+    <!-- TOPBAR -->
+    <header class="topbar">
+      <div class="topbar-left">
+        <button class="hamburger" id="hamburger" aria-label="menu">
+          <svg viewBox="0 0 24 24" width="20" height="20"><line x1="3" y1="6" x2="21" y2="6"/><line x1="3" y1="12" x2="21" y2="12"/><line x1="3" y1="18" x2="21" y2="18"/></svg>
+        </button>
+        <div>
+          <h1 class="page-title" id="pageTitle">Overview</h1>
+          <p class="page-sub" id="pageSub">Simply Connect · Aug – Sep 2026 Performance</p>
+        </div>
+      </div>
+      <div class="topbar-right">
+        <div class="data-pill" id="dataPill">
+          <span class="dot live"></span>
+          <span id="pillText">Static data</span>
+        </div>
+        <button class="icon-btn" id="refreshBtn" title="Refresh">
+          <svg viewBox="0 0 24 24" width="16" height="16"><polyline points="23 4 23 10 17 10"/><path d="M20.49 15a9 9 0 1 1-2.12-9.36L23 10"/></svg>
+        </button>
+        <button class="export-btn" id="exportBtn">↓ Export CSV</button>
+      </div>
+    </header>
+
+    <!-- SLICERS -->
+    <div class="slicer-bar" id="slicerBar">
+      <div class="period-group">
+        <button class="pbtab active" data-p="daily">Daily</button>
+        <button class="pbtab" data-p="weekly">Weekly</button>
+        <button class="pbtab" data-p="monthly">Monthly</button>
+      </div>
+      <div class="slicer-sep"></div>
+
+      <div class="slicer-field">
+        <label>From</label>
+        <input type="date" id="fStart" value="2026-08-01"/>
+      </div>
+      <div class="slicer-field">
+        <label>To</label>
+        <input type="date" id="fEnd" value="2026-09-02"/>
+      </div>
+
+      <div class="slicer-sep"></div>
+
+      <div class="slicer-field">
+        <label>Team</label>
+        <select id="fTeam">
+          <option value="">All teams</option>
+          <option>Team Hassan</option><option>Team Areeb</option>
+          <option>Team Noor</option><option>Team Wajahat</option>
+          <option>Team Yousif</option><option>Team Wireless</option>
+        </select>
+      </div>
+      <div class="slicer-field">
+        <label>Campaign</label>
+        <select id="fCampaign">
+          <option value="">All campaigns</option>
+          <option>Group 44 Sales</option><option>Group 48</option>
+          <option>Group 50 CS</option><option>Fiber Opp</option>
+          <option>Wireless</option><option>Group 56</option>
+        </select>
+      </div>
+      <div class="slicer-field">
+        <label>State</label>
+        <select id="fState">
+          <option value="">All states</option>
+          <option>TX</option><option>FL</option><option>CA</option>
+          <option>GA</option><option>IN</option><option>TN</option>
+          <option>NC</option><option>IL</option><option>MI</option>
+          <option>AL</option><option>KY</option>
+        </select>
+      </div>
+      <div class="slicer-field">
+        <label>Agent</label>
+        <select id="fAgent"><option value="">All agents</option></select>
+      </div>
+
+      <div class="slicer-sep"></div>
+
+      <div class="slicer-search">
+        <svg viewBox="0 0 24 24" width="13" height="13"><circle cx="11" cy="11" r="8"/><line x1="21" y1="21" x2="16.65" y2="16.65"/></svg>
+        <input type="text" id="fSearch" placeholder="Search agent, campaign…"/>
+      </div>
+
+      <div class="slicer-actions">
+        <button class="clear-btn" id="clearBtn">Clear</button>
+        <button class="export-btn small" id="exportCsv">↓ CSV</button>
+      </div>
+    </div>
+
+    <!-- CONTENT -->
+    <main class="content" id="content">
+      <div class="loading-wrap"><div class="spinner"></div><p>Loading dashboard…</p></div>
+    </main>
+
+  </div>
+</div>
+
+<!-- MODAL -->
+<div class="modal-bg" id="gasModal" style="display:none">
+  <div class="modal-box">
+    <div class="modal-hdr">
+      <h3>Google Apps Script — API Code</h3>
+      <button class="modal-x" id="modalClose">✕</button>
+    </div>
+    <div class="modal-body"><pre id="gasCode" class="gas-pre"></pre></div>
+    <div class="modal-foot">Deploy as Web App → Execute as Me → Access: Anyone → Copy URL → paste in <code>js/data.js</code> as <code>window.API_URL</code></div>
+  </div>
+</div>
+
+<div class="toast" id="toast"></div>
+
+<script src="js/data.js"></script>
+<script src="js/charts.js"></script>
+<script src="js/app.js"></script>
+</body>
+</html>
