@@ -25,6 +25,52 @@ const fmtSecs = s=>{s=Math.round(s);const m=Math.floor(s/60),sec=s%60;return`${m
 const fmtNum  = n=>(+n||0).toLocaleString();
 const pct     = (a,b)=>b?((a/b)*100).toFixed(1)+'%':'—';
 
+/* ══ PERIOD GROUPING (client-side — no refetch needed) ══
+   dailyCalls dates come back as short labels like "Aug 1" (no year), so
+   weekly grouping buckets by array position (the data is already in
+   chronological order) rather than re-parsing the label into a real
+   Date, and monthly grouping reads the month name straight off the
+   label. Both avoid any date-parsing ambiguity. */
+function groupDailyByPeriod(dailyCalls, period){
+  if(!dailyCalls || !dailyCalls.length || period==='daily') return dailyCalls;
+
+  function mergeBucket(rows, label){
+    const total = rows.reduce((s,r)=>s+r.total,0);
+    const answered = rows.reduce((s,r)=>s+r.answered,0);
+    const abandoned = rows.reduce((s,r)=>s+r.abandoned,0);
+    // Weighted average so a light day doesn't skew the bucket's talk/wait time.
+    const talkSum = rows.reduce((s,r)=>s+r.avgTalk*r.total,0);
+    const waitSum = rows.reduce((s,r)=>s+r.avgWait*r.total,0);
+    return {
+      date:label, total, answered, abandoned,
+      avgTalk: total?Math.round(talkSum/total):0,
+      avgWait: total?Math.round(waitSum/total):0,
+    };
+  }
+
+  if(period==='weekly'){
+    const out=[];
+    for(let i=0;i<dailyCalls.length;i+=7){
+      const chunk=dailyCalls.slice(i,i+7);
+      const label = chunk.length>1 ? `${chunk[0].date} – ${chunk[chunk.length-1].date}` : chunk[0].date;
+      out.push(mergeBucket(chunk,label));
+    }
+    return out;
+  }
+
+  if(period==='monthly'){
+    const buckets={}; const order=[];
+    dailyCalls.forEach(r=>{
+      const month = String(r.date).split(' ')[0] || r.date; // "Aug 1" → "Aug"
+      if(!buckets[month]){ buckets[month]=[]; order.push(month); }
+      buckets[month].push(r);
+    });
+    return order.map(month=>mergeBucket(buckets[month],month));
+  }
+
+  return dailyCalls;
+}
+
 /* ══ TOAST ══ */
 function toast(msg,ms=2400){
   const el=document.getElementById('toast');
@@ -47,7 +93,10 @@ function animateCounter(el,target,dur=700,suffix=''){
 }
 function animateKPIs(){
   document.querySelectorAll('.kpi-val[data-count]').forEach(el=>{
-    animateCounter(el,el.dataset.count,800,el.dataset.suffix||'');
+    // Short duration on purpose — this replays on every filter/tab change,
+    // not just first load, so a long count-up makes repeated interaction
+    // feel sluggish even though the underlying data is already loaded.
+    animateCounter(el,el.dataset.count,450,el.dataset.suffix||'');
   });
 }
 
@@ -226,8 +275,8 @@ function renderOverview(area,d){
   </div>
   `;
 
-  Charts.dailyCallsArea('chDailyCalls',d.dailyCalls);
-  Charts.answerRateLine('chAnsRate',d.dailyCalls);
+  Charts.dailyCallsArea('chDailyCalls',groupDailyByPeriod(d.dailyCalls,S.period));
+  Charts.answerRateLine('chAnsRate',groupDailyByPeriod(d.dailyCalls,S.period));
   Charts.callResultDoughnut('chCallResult',d.callResults);
   Charts.teamBar('chTeamBar',d.teams);
   Charts.providerDoughnut('chProvider',d.providers);
@@ -289,10 +338,10 @@ function renderCalls(area,d){
     </div>
   </div>
   `;
-  Charts.dailyCallsArea('chDC2',d.dailyCalls);
+  Charts.dailyCallsArea('chDC2',groupDailyByPeriod(d.dailyCalls,S.period));
   Charts.callResultDoughnut('chCR2',d.callResults);
   Charts.bounceDist('chBounce');
-  Charts.dailySalesArea('chTalkWait',d.dailyCalls,d.sales);
+  Charts.dailySalesArea('chTalkWait',groupDailyByPeriod(d.dailyCalls,S.period),d.sales);
 }
 
 /* ═══════════════════════════════════════════════════════
@@ -1216,13 +1265,16 @@ function wire(){
     document.getElementById('sidebar').classList.toggle('open');
   });
 
-  // Period tabs
+  // Period tabs — daily/weekly/monthly grouping is done client-side in
+  // groupDailyByPeriod() from the data already sitting in S.data, so this
+  // just re-renders instantly instead of re-hitting the Google Sheets API
+  // for data that hasn't actually changed.
   document.querySelectorAll('.pbtab').forEach(btn=>{
     btn.addEventListener('click',()=>{
       document.querySelectorAll('.pbtab').forEach(b=>b.classList.remove('active'));
       btn.classList.add('active');
       S.period=btn.dataset.p;
-      DataModule.bust(); loadData();
+      render();
     });
   });
 
