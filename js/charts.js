@@ -17,7 +17,7 @@ window.Charts = (function(){
     titleFont:{...FONT,weight:'700'},bodyFont:FONT,
   };
 
-  const ANIM={duration:600,easing:'easeOutQuart'};
+  const ANIM={duration:350,easing:'easeOutQuart'};
 
   const pool={};
   function kill(id){ if(pool[id]){pool[id].destroy();delete pool[id];} }
@@ -58,12 +58,6 @@ window.Charts = (function(){
   /* ── AREA: Daily Sales ── */
   function dailySalesArea(id, dailyCalls, salesData){
     kill(id); const c=ctx(id); if(!c)return;
-    // aggregate sales by day
-    const dayMap={};
-    salesData.forEach(s=>{
-      const k='Aug 1'; // all sales are Aug 1 in static
-    });
-    // Use call daily dates but sales will just show total
     pool[id]=new Chart(c,{
       type:'line',
       data:{
