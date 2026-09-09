@@ -124,37 +124,38 @@ function setLoading(on){
     rb.classList.remove('spin');
     dataPill.style.background='';
     dataPill.title='';
-    if(window.API_URL && _lastApiError){
+    if(_lastApiError){
       dot.className='dot err';
-      pill.textContent='API error · showing static data';
-      document.getElementById('sbStatusText').textContent='API error';
+      pill.textContent='Couldn\'t load data';
+      document.getElementById('sbStatusText').textContent='Error';
       dataPill.title=_lastApiError;
       dataPill.style.cursor='help';
     } else {
       dot.className='dot live';
-      pill.textContent=window.API_URL?'Live data':'Static · Aug–Sep 2026';
-      document.getElementById('sbStatusText').textContent=window.API_URL?'Live':'Static · Aug–Sep 2026';
+      pill.textContent='Live data';
+      document.getElementById('sbStatusText').textContent='Live';
       dataPill.style.cursor='';
     }
   }
 }
 
-/* ══ POPULATE FILTER DROPDOWNS (from real data, not hardcoded lists) ══ */
-function fillAgentDrop(){
+/* ══ POPULATE FILTER DROPDOWNS (from live data — called after the first
+   successful load, since there's no offline snapshot to seed them from) ══ */
+function fillAgentDrop(d){
   const sel=document.getElementById('fAgent');
   const cur=sel.value;
   while(sel.options.length>1)sel.remove(1);
-  [...window.STATIC.agents].sort((a,b)=>a.name.localeCompare(b.name)).forEach(a=>{
+  [...d.agents].sort((a,b)=>a.name.localeCompare(b.name)).forEach(a=>{
     const o=document.createElement('option');
     o.value=a.name; o.textContent=a.name; sel.appendChild(o);
   });
   sel.value=cur;
 }
-function fillTeamDrop(){
+function fillTeamDrop(d){
   const sel=document.getElementById('fTeam');
   const cur=sel.value;
   while(sel.options.length>1)sel.remove(1);
-  window.STATIC.teams
+  d.teams
     .filter(t=>t.team && t.team!=='Unassigned')
     .sort((a,b)=>b.sales-a.sales)
     .forEach(t=>{
@@ -163,21 +164,21 @@ function fillTeamDrop(){
     });
   sel.value=cur;
 }
-function fillCampaignDrop(){
+function fillCampaignDrop(d){
   const sel=document.getElementById('fCampaign');
   const cur=sel.value;
   while(sel.options.length>1)sel.remove(1);
-  [...window.STATIC.campaigns].sort((a,b)=>b.calls-a.calls).forEach(c=>{
+  [...d.campaigns].sort((a,b)=>b.calls-a.calls).forEach(c=>{
     const o=document.createElement('option');
     o.value=c.name; o.textContent=c.name; sel.appendChild(o);
   });
   sel.value=cur;
 }
-function fillStateDrop(){
+function fillStateDrop(d){
   const sel=document.getElementById('fState');
   const cur=sel.value;
   while(sel.options.length>1)sel.remove(1);
-  [...window.STATIC.states].sort((a,b)=>b.sales-a.sales).forEach(s=>{
+  [...d.states].sort((a,b)=>b.sales-a.sales).forEach(s=>{
     const o=document.createElement('option');
     o.value=s.state; o.textContent=s.state; sel.appendChild(o);
   });
@@ -188,7 +189,21 @@ function fillStateDrop(){
 function render(){
   Charts.killAll();
   const area=document.getElementById('content');
-  if(!S.data){area.innerHTML='';return;}
+  if(!S.data){
+    area.innerHTML = `
+      <div class="card" style="text-align:center;padding:48px 24px">
+        <div style="font-size:32px;margin-bottom:8px">⚠️</div>
+        <div style="font-weight:700;font-size:16px;margin-bottom:6px">Couldn't load data from your Google Sheet</div>
+        <div style="color:var(--t3);font-size:13px;max-width:480px;margin:0 auto 16px">
+          ${_lastApiError ? _lastApiError : 'No data has loaded yet.'}
+          Check that <code>window.API_URL</code> in <code>js/data.js</code> points to your deployed
+          Apps Script web app, and that the sheet is shared correctly.
+        </div>
+        <button class="export-btn" id="retryLoadBtn">↻ Retry</button>
+      </div>`;
+    document.getElementById('retryLoadBtn').addEventListener('click', loadData);
+    return;
+  }
   const titles={
     overview:'Overview',calls:'Call Analytics',sales:'Sales Analytics',
     agents:'Agent Performance',campaigns:'Campaigns',
@@ -196,10 +211,10 @@ function render(){
     insights:'Insights',apisetup:'API Setup'
   };
   document.getElementById('pageTitle').textContent=titles[S.tab]||'';
-  const sm = S.data ? S.data.summary : window.STATIC.summary;
-  const agentCount = S.data ? S.data.agents.length : window.STATIC.agents.length;
-  const campCount  = S.data ? S.data.campaigns.length : window.STATIC.campaigns.length;
-  const stateCount = S.data ? S.data.states.length : window.STATIC.states.length;
+  const sm = S.data.summary;
+  const agentCount = S.data.agents.length;
+  const campCount  = S.data.campaigns.length;
+  const stateCount = S.data.states.length;
   const subs={
     overview:'Combined Calls & Sales · Aug – Sep 2026',
     calls:fmtNum(sm.totalCalls)+' calls · Call center performance',
@@ -1241,8 +1256,19 @@ function exportCSV(){
 async function loadData(){
   if(S.loading)return;
   setLoading(true);
-  try{ S.data=await DataModule.load(S.filters); }
-  catch(e){ toast('⚠ Data error'); S.data=await DataModule.load({}); }
+  try{
+    S.data=await DataModule.load(S.filters);
+    // Keep the slicer dropdowns in sync with whatever the sheet actually
+    // contains (new agents/teams/campaigns/states show up automatically).
+    fillAgentDrop(S.data);
+    fillTeamDrop(S.data);
+    fillCampaignDrop(S.data);
+    fillStateDrop(S.data);
+  }catch(e){
+    console.error('[Simply Connect] Failed to load data:', e.message);
+    _lastApiError = e.message;
+    S.data = null;
+  }
   setLoading(false);
   render();
 }
@@ -1342,9 +1368,10 @@ function wire(){
       document.getElementById('gasModal').style.display='none';
   });
 
-  // Badge counts
-  document.getElementById('badgeCalls').textContent=fmtNum(window.STATIC.summary.totalCalls);
-  document.getElementById('badgeSales').textContent=fmtNum(window.STATIC.summary.totalSales);
+  // Badge counts — set once real data loads (see renderCalls/renderSales);
+  // just show a neutral placeholder until the first fetch completes.
+  document.getElementById('badgeCalls').textContent='—';
+  document.getElementById('badgeSales').textContent='—';
 
   // Auto-refresh
   if(window.API_URL){
@@ -1354,10 +1381,9 @@ function wire(){
 
 /* ══ INIT ══ */
 function init(){
-  fillAgentDrop();
-  fillTeamDrop();
-  fillCampaignDrop();
-  fillStateDrop();
+  // Dropdowns are populated from live data once the first load() call
+  // succeeds (see loadData()) — there's no offline snapshot to seed them
+  // from before that.
   wire();
   loadData();
 }
