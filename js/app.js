@@ -802,7 +802,7 @@ const GAS=`// ══════════════════════
 // Set window.API_URL in js/data.js to that URL
 // ══════════════════════════════════════════════════
 
-const SPREADSHEET_ID = 'YOUR_GOOGLE_SPREADSHEET_ID';
+const SPREADSHEET_ID = '19sapy2PJqHvTwqRbZ4ctkdAgLzeE2Wz4SqArBXU7VEWofwzD_tf0V7Vg';
 
 function doGet(e) {
   try {
